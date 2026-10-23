@@ -1,0 +1,102 @@
+[project]
+name = "looper-core"
+dynamic = ["version"]
+description = "Software in the loop testing for HAL adapter based firmware projects"
+requires-python = ">=3.13"
+dependencies = [
+    "jinja2>=3.1.6",
+    "libclang>=18.1.1",
+    # The C runtime and the protocol schema, which this builds against but
+    # does not contain. A neighbouring checkout for now; see tool.uv.sources.
+    "looper-rt>=0.1",
+    "pefile>=2024.8.26",
+    # The generated protocol bindings ship in the wheel and import it.
+    "protobuf>=7.36.2",
+    "pydantic>=2.14.1",
+    "pyelftools>=0.33",
+]
+
+[project.scripts]
+looper-cli = "looper.presentation.cli.main:main"
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=8.1",
+    "furo>=2024.8.6",
+    "myst-parser>=4.0",
+    "sphinx-autodoc-typehints>=2.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "mypy>=1.13",
+    "ruff>=0.8",
+    # Only the code generation script needs these; protobuf itself is a
+    # runtime dependency and is declared above.
+    "grpcio-tools>=1.84.0",
+]
+
+# looper-rt is not published yet, so it resolves from a neighbouring
+# checkout. Replace this with a git or index source once it is pushed;
+# nothing else in the project names where it comes from.
+[tool.uv.sources]
+looper-rt = { git = "https://github.com/donsprallo/looper-rt.git" }
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/looper"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# "tests" so that a double used by more than one directory -- the
+# progress listener, which the application and the infrastructure both
+# report through -- can live at the root instead of being copied.
+pythonpath = ["src", "tests"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+mypy_path = "src"
+packages = ["looper"]
+exclude = ["src/looper/infrastructure/ipc/generated"]
+
+[[tool.mypy.overrides]]
+# libclang ships no type information.
+module = ["clang.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pefile ships no type information.
+module = ["pefile"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# protoc output is excluded from checking but still imported.
+module = ["looper.infrastructure.ipc.generated.*"]
+ignore_errors = true
+follow_imports = "skip"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py313"
+# protoc output is not ours to style.
+extend-exclude = ["src/looper/infrastructure/ipc/generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "ARG", "PTH", "RET", "D"]
+ignore = ["D105", "D107", "D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Test doubles implement abstract signatures they do not use.
+"tests/*" = ["ARG001", "ARG002", "D100", "D101", "D102", "D103"]

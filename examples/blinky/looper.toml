@@ -1,0 +1,44 @@
+# How the blinky example builds its simulation.
+#
+# Every path is relative to this file, so the definition works from any
+# working directory. Build it with:
+#
+#     uv run looper-cli build examples/blinky/looper.toml
+#
+# Build and start it with:
+#
+#     uv run looper-cli run examples/blinky/looper.toml
+
+[simulation]
+name = "blinky"
+
+# The adapter headers the simulation is generated from.
+headers = "Inc"
+contract = "contract.toml"
+
+# The firmware itself and the device model that maps the adapter onto the
+# looper runtime.
+sources = ["src"]
+includes = ["Inc", "src"]
+
+# Where generation and compilation put their output.
+generated = "build/generated"
+executable = "build/blinky"
+
+# Record every adapter call so that a client can read the journal.
+record_calls = true
+
+# Treat warnings as errors: generated code that warns is a defect in looper.
+# Debug information so that a client can read the firmware's variables out of
+# the build and watch them; see docs/variables.md.
+warnings = ["-Wall", "-Wextra", "-Werror", "-g"]
+
+# Weave the firmware and the device model with instrumentation, so that the
+# inspector can show where the whole simulation spends its time. The example
+# is small enough that the cost does not matter; a real firmware should weigh
+# it, because nothing woven gets inlined.
+profile = true
+
+# Put looper in front of the allocator, so that a client can see what the
+# firmware asks for and what it never gives back. A link time switch.
+track_allocations = true

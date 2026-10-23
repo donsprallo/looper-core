@@ -1,0 +1,3 @@
+# The blinky adapter passes no buffers and installs no callbacks, so its
+# contract is empty. The file exists to show that an empty contract is a
+# complete one: looper only demands entries for pointers and callbacks.
